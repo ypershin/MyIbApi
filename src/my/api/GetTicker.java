@@ -1,6 +1,14 @@
 package my.api;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 import com.ib.controller.ApiConnection.ILogger;
 import com.ib.controller.ApiController;
@@ -13,15 +21,15 @@ import com.ib.controller.Types.SecType;
 public class GetTicker extends ConnectionHandlerAdapter implements ILogger {
 
 	private final ApiController m_controller = new ApiController(this, this, this);
-	private String[] m_symbol = { "SPY", "EEM", "AMZN", "AAPL", "MSFT", "FB", "TWTR" };
-	private NewContract[] m_contract = new NewContract[m_symbol.length];
-	// private double m_bid, m_ask;
-	// private static final DateFormat df = new SimpleDateFormat("yyyy-mm-dd
-	// HH:mm:ss.SSS");
-	// private static final DecimalFormat nf = new DecimalFormat("#.00");
+	// private String[] m_symbol = { "SPY", "EEM", "XIV" };
+	private String[] m_symbol = new String[60];
+	private NewContract[] m_contract = null;
+//	private double m_bid, m_ask;
+	private static final DateFormat df = new SimpleDateFormat("MM-dd HH:mm:ss.SSS");
+	private static final DecimalFormat nf = new DecimalFormat("#.00");
 	private DbApi db = new DbApi();
 
-	private final int BATCH_SIZE = 10;
+	private final int BATCH_SIZE = 100;
 
 	private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
 	private long cnt = 0;
@@ -32,17 +40,55 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger {
 
 	void run() {
 
+		m_symbol = getSymbols("C:\\Users\\Ypershin\\Documents\\TSX60_components.csv");
+		m_contract = new NewContract[m_symbol.length];
+
+		// System.exit(0);
+
 		for (int i = 0; i < m_symbol.length; i++) {
+//			System.out.println(m_symbol[i]);
 			m_contract[i] = new NewContract();
 			// m_contract[i].symbol(m_symbol[i]);
 			m_contract[i].localSymbol(m_symbol[i]);
 			m_contract[i].exchange("SMART");
 			m_contract[i].secType(SecType.STK);
-			m_contract[i].currency("USD");
+			m_contract[i].currency("CAD");
 
 		}
 
 		m_controller.connect("127.0.0.1", 7496, 0);
+	}
+
+	private String[] getSymbols(String fileName) {
+
+		ArrayList<String> arr = new ArrayList<String>();
+
+		try {
+			FileReader f = new FileReader(fileName);
+			BufferedReader br = new BufferedReader(f);
+
+			try {
+				String line = "";
+				int cnt = 0;
+				while (true) {
+					line = br.readLine();
+					if (line == null || line.equals(""))
+						break;
+
+					if (++cnt > 1) {
+//						System.out.println(line);
+						arr.add(line.split(",")[1]);
+					}
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		return arr.toArray(new String[arr.size()]);
 	}
 
 	@Override
@@ -62,21 +108,17 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger {
 	 */
 
 	private void getMarketData(NewContract contract) {
+		
+		System.out.println(contract.localSymbol());
 
 		m_controller.reqTopMktData(contract, "", false, new ITopMktDataHandler() {
-
-			String symbol = contract.localSymbol();
 
 			@Override
 			public void tickPrice(NewTickType tickType, double price, int canAutoExecute) {
 
-				print(symbol + "\ttickPrice\t" + price);
-
 				if (price != 0.0) {
-					// System.out.println(contract.localSymbol() + "\t" +
-					// df.format(new
-					// Date())
-					// + (blnBid ? "\t\t" : "\t\t\t") + nf.format(price));
+//					System.out.println(contract.localSymbol() + "\t" + df.format(new Date())
+//							+ (tickType == NewTickType.BID ? "\t\t" : "\t\t\t") + nf.format(price));
 
 					tickerList.add(new Ticker(contract.localSymbol(), tickType == NewTickType.BID, price));
 
@@ -92,12 +134,12 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger {
 
 			@Override
 			public void tickSize(NewTickType tickType, int size) {
-				print(symbol + "\ttickSize\t" + size);
+				// print(symbol + "\ttickSize\t" + size);
 			}
 
 			@Override
 			public void tickString(NewTickType tickType, String value) {
-				print(symbol + "\ttickString\t" + value);
+				// print(symbol + "\ttickString\t" + value);
 			}
 
 			@Override

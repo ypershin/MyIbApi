@@ -4,7 +4,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 public class DbApi {
 
@@ -12,8 +15,7 @@ public class DbApi {
 	PreparedStatement ps = null;
 
 	// private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
-	// private static final DateFormat df = new SimpleDateFormat("yyyy-mm-dd
-	// hh:mm:ss.SSS");
+	private static final DateFormat df = new SimpleDateFormat("MM-dd hh:mm:ss.SSS");
 
 	// private final int BATCH_SIZE = 40;
 
@@ -53,10 +55,10 @@ public class DbApi {
 	public void insertBatch(ArrayList<Ticker> tickerList) {
 		try {
 
-			int cnt = 0;
+			// int cnt = 0;
 			for (Ticker ticker : tickerList) {
 
-				System.out.println(++cnt + "\t" + ticker.toString());
+				// System.out.println(++cnt + "\t" + ticker.toString());
 
 				ps.setString(1, ticker.getSymbol());
 				ps.setString(2, ticker.getTimestamp());
@@ -72,6 +74,7 @@ public class DbApi {
 			}
 
 			ps.executeBatch();
+			System.out.println(df.format(new Date()));
 			// ps.close();
 			// c.commit();
 			// c.close();
