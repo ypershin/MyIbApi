@@ -46,7 +46,9 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 	private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
 	private long cnt = 0;
 
+	// see AccountSummaryTag for tags
 	private static String[] tags = { "NetLiquidation", "AvailableFunds", "MaintMarginReq" };
+	
 	private static Chart chart = new Chart(tags);
 
 	public static void main(String[] args) {
