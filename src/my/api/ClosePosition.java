@@ -30,10 +30,12 @@ public class ClosePosition extends ConnectionHandlerAdapter implements ILogger {
 
 	void run(String symbol) {
 		m_symbol = symbol;
-		m_controller.connect("127.0.0.1", 7496, 0);
+		
+		System.out.println("******   Application is disabled **********");
+//		m_controller.connect("127.0.0.1", 7496, 0);
 	}
 
-	@Override
+	
 	public void connected() {
 		// TODO Auto-generated method stub
 
