@@ -56,7 +56,7 @@ public class Chart {
 		window.setVisible(true);
 	}
 
-	public void addData(int i, double y) {
+	public void addDataAcc(int i, double y) {
 		double x = (System.nanoTime() - startTime) / 1e9 / 60;
 
 		double ty = Math.floor(y / 1000) * 1000.0;
@@ -67,6 +67,12 @@ public class Chart {
 		chart.getXYPlot().getRangeAxis().setRange(hlVal[0], hlVal[1]);
 
 		series[i].add(x, y);
+	}
+	
+	
+	public void addDataTick(int i, double y) {
+		double x = (System.nanoTime() - startTime) / 1e9 / 60;
+		series[i].add(x, y);		
 	}
 
 }

@@ -33,7 +33,7 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 
 	private final ApiController m_controller = new ApiController(this, this, this);
 
-	private static String[] m_symbol = { "EEM", "XIV" };
+	private static String[] m_symbol = { "VXX", "XIV" };
 	// private String[] m_symbol = new String[60];
 	private NewContract[] m_contract = null;
 	// private double m_bid, m_ask;
@@ -41,18 +41,20 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 	private static final DecimalFormat nf = new DecimalFormat("#.00");
 	private DbApi db = new DbApi();
 
-	private final int BATCH_SIZE = 50;
+	private final int BATCH_SIZE = 100;
 
 	private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
 	private long cnt = 0;
 
 	// see AccountSummaryTag for tags
 	private static String[] tags = { "NetLiquidation", "AvailableFunds", "MaintMarginReq" };
-	
+
 	private static Chart chart = new Chart(tags);
+	private static Chart chartTick = new Chart(m_symbol);
 
 	public static void main(String[] args) {
 		chart.activate();
+		chartTick.activate();
 
 		new GetTicker().run();
 	}
@@ -62,20 +64,21 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 
 		// m_symbol =
 		// getSymbols("C:\\Users\\Ypershin\\Documents\\TSX60_components.csv");
-		// m_contract = new NewContract[m_symbol.length];
-		//
-		// // System.exit(0);
-		//
-		// for (int i = 0; i < m_symbol.length; i++) {
-		// // System.out.println(m_symbol[i]);
-		// m_contract[i] = new NewContract();
-		// // m_contract[i].symbol(m_symbol[i]);
-		// m_contract[i].localSymbol(m_symbol[i]);
-		// m_contract[i].exchange("SMART");
-		// m_contract[i].secType(SecType.STK);
-		// m_contract[i].currency("USD");
-		//
-		// }
+		m_contract = new NewContract[m_symbol.length];
+
+		// System.exit(0);
+
+		for (int i = 0; i < m_symbol.length; i++) {
+			// System.out.println(m_symbol[i]);
+			m_contract[i] = new NewContract();
+			// m_contract[i].symbol(m_symbol[i]);
+			m_contract[i].localSymbol(m_symbol[i]);
+			m_contract[i].exchange("SMART");
+			m_contract[i].secType(SecType.STK);
+			m_contract[i].currency("USD");
+			// m_contract[i].currency("CAD");
+
+		}
 
 		m_controller.connect("127.0.0.1", 7496, 0);
 
@@ -86,11 +89,11 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 
 		// }
 
-		// for (NewContract contract : m_contract) {
-		// getMarketData(contract);
-		// }
-
 		getAccountSummary();
+
+		for (NewContract contract : m_contract) {
+			getMarketData(contract);
+		}
 
 	}
 
@@ -124,13 +127,13 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 				System.out.println(tag + "\t" + value + "\t" + df.format(new Date()));
 				switch (tag) {
 				case NetLiquidation:
-					chart.addData(0, Double.parseDouble(value));
+					chart.addDataAcc(0, Double.parseDouble(value));
 					break;
 				case AvailableFunds:
-					chart.addData(1, Double.parseDouble(value));
+					chart.addDataAcc(1, Double.parseDouble(value));
 					break;
 				case MaintMarginReq:
-					chart.addData(2, Double.parseDouble(value));
+					chart.addDataAcc(2, Double.parseDouble(value));
 					break;
 				default:
 					break;
@@ -149,6 +152,7 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 	private void getMarketData(NewContract contract) {
 
 		System.out.println(contract.localSymbol());
+		int ml = m_symbol.length;
 
 		m_controller.reqTopMktData(contract, "", false, new ITopMktDataHandler() {
 
@@ -160,6 +164,13 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 							+ (tickType == NewTickType.BID ? "\t\t" : "\t\t\t") + nf.format(price));
 
 					tickerList.add(new Ticker(contract.localSymbol(), tickType == NewTickType.BID, price));
+
+					for (int j = 0; j < ml; j++) {
+						if (contract.localSymbol().equals(m_symbol[j])) {
+							chartTick.addDataTick(j, price);
+							break;
+						}
+					}
 
 					if (++cnt % BATCH_SIZE == 0) {
 						db.insertBatch(tickerList);
