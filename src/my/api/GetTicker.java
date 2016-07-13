@@ -33,7 +33,7 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 
 	private final ApiController m_controller = new ApiController(this, this, this);
 
-	private static String[] m_symbol = { "VXX", "XIV" };
+	private static String[] m_symbol = { "XIV", "VXX" };
 	// private String[] m_symbol = new String[60];
 	private NewContract[] m_contract = null;
 	// private double m_bid, m_ask;
@@ -46,21 +46,25 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 	private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
 	private long cnt = 0;
 
+	private double[] prc = { 0.0, 0.0 };
+
 	// see AccountSummaryTag for tags
 	private static String[] tags = { "NetLiquidation", "AvailableFunds", "MaintMarginReq" };
 
 	private static Chart chart = new Chart(tags);
 	private static Chart chartTick = new Chart(m_symbol);
+	private static Chart chartSpread = new Chart(new String[] { m_symbol[0] + "-" + m_symbol[1] + " spread" });
 
 	public static void main(String[] args) {
-		chart.activate();
-		chartTick.activate();
 
 		new GetTicker().run();
 	}
 
 	@Override
 	public void run() {
+		chart.activate();
+		chartTick.activate();
+		chartSpread.activate();
 
 		// m_symbol =
 		// getSymbols("C:\\Users\\Ypershin\\Documents\\TSX60_components.csv");
@@ -168,9 +172,14 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 					for (int j = 0; j < ml; j++) {
 						if (contract.localSymbol().equals(m_symbol[j])) {
 							chartTick.addDataTick(j, price);
+							if (j < 2)
+								prc[j] = price;
 							break;
 						}
 					}
+
+					if (prc[0] != 0 && prc[1] != 0)
+						chartSpread.addDataTick(0, prc[0] - prc[1]);
 
 					if (++cnt % BATCH_SIZE == 0) {
 						db.insertBatch(tickerList);

@@ -115,16 +115,16 @@ public class DbApi {
 		return (tck.toArray(res));
 	}
 
-	public double[][] getSpread() {
+	public double[][] getSpread(String[] symb) {
 		ArrayList<double[]> ls = new ArrayList<double[]>();
 
-		String qry = "select max(p1) p1, max(p2) p2 from (select timestamp_, "
-				+ "(case when symbol='BCE' then price::numeric else 0 end) p1, "
-				+ "(case when symbol='EMA' then price::numeric else 0 end) p2 from ticks "
-				+ "where symbol in ('BCE','EMA') and timestamp_ >= (current_date-30)) a "
-				+ "group by timestamp_ order by timestamp_";
+		String qry = new String("select max(p1) p1, max(p2) p2 from (select timestamp_, "
+				+ "(case when symbol='{S1}' then price::numeric else 0 end) p1, "
+				+ "(case when symbol='{S2}' then price::numeric else 0 end) p2 from ticks "
+				+ "where symbol in ('{S1}','{S2}') and timestamp_ >= (current_date-0)) a "
+				+ "group by timestamp_ order by timestamp_").replace("{S1}", symb[0]).replace("{S2}", symb[1]);
 
-//		System.out.println(qry);
+		System.out.println(qry);
 
 		// String qryTst = "select * from (select 1.1 p1, 1.2 p2 union all
 		// select 2.1 p1, 2.2 p2 union all select 3.1 p1, 3.2 p2) a order by

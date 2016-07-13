@@ -31,8 +31,7 @@ public class HistAnalysis implements Runnable {
 		// }
 		// }
 
-		double[][] p = db.getSpread();
-		int n = 0;
+		double[][] p = db.getSpread(new String[] { "XIV", "VXX" });
 
 		for (int i = 0; i < p.length; i++) {
 			if (p[i][0] == 0.0 && i > 0 && p[i - 1][0] > 0)
@@ -41,7 +40,7 @@ public class HistAnalysis implements Runnable {
 				p[i][1] = p[i - 1][1];
 
 			if (p[i][0] != 0.0 && p[i][1] != 0.0) {
-//				System.out.println(i + "\t" + (p[i][0] - p[i][1]));
+				// System.out.println(i + "\t" + (p[i][0] - p[i][1]));
 				chart.addDataTickHist(0, i, p[i][0] - p[i][1]);
 			}
 		}
