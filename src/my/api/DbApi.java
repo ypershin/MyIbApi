@@ -3,7 +3,9 @@ package my.api;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -13,6 +15,7 @@ public class DbApi {
 
 	private Connection c = null;
 	PreparedStatement ps = null;
+	Statement stmt = null;
 
 	// private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
 	private static final DateFormat df = new SimpleDateFormat("MM-dd hh:mm:ss.SSS");
@@ -83,6 +86,70 @@ public class DbApi {
 			e.printStackTrace();
 		}
 
+	}
+
+	public Ticker[] getRecords(String symbol) {
+		ArrayList<Ticker> tck = new ArrayList<Ticker>();
+
+		String qry = "select symbol,timestamp_,isbid,price from ticks where symbol='{SYMBOL}' and timestamp_ >= (current_date-1) order by timestamp_"
+				.replace("{SYMBOL}", symbol);
+
+		try {
+			stmt = c.createStatement();
+			ResultSet rs = stmt.executeQuery(qry);
+			while (rs.next()) {
+				tck.add(new Ticker(rs.getString("symbol"), rs.getTimestamp("timestamp_"),
+						rs.getString("isbid").equals("b"), rs.getDouble("price")));
+			}
+			rs.close();
+			stmt.close();
+			// c.close();
+
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		Ticker[] res = new Ticker[tck.size()];
+
+		return (tck.toArray(res));
+	}
+
+	public double[][] getSpread() {
+		ArrayList<double[]> ls = new ArrayList<double[]>();
+
+		String qry = "select max(p1) p1, max(p2) p2 from (select timestamp_, "
+				+ "(case when symbol='BCE' then price::numeric else 0 end) p1, "
+				+ "(case when symbol='EMA' then price::numeric else 0 end) p2 from ticks "
+				+ "where symbol in ('BCE','EMA') and timestamp_ >= (current_date-30)) a "
+				+ "group by timestamp_ order by timestamp_";
+
+//		System.out.println(qry);
+
+		// String qryTst = "select * from (select 1.1 p1, 1.2 p2 union all
+		// select 2.1 p1, 2.2 p2 union all select 3.1 p1, 3.2 p2) a order by
+		// p1";
+
+		try {
+			stmt = c.createStatement();
+			ResultSet rs = stmt.executeQuery(qry);
+
+			while (rs.next()) {
+				ls.add(new double[] { rs.getDouble("p1"), rs.getDouble("p2") });
+			}
+			rs.close();
+			stmt.close();
+			// c.close();
+
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		double[][] res = new double[2][];
+
+		// System.out.println(res[1][0]);
+		return (ls.toArray(res));
 	}
 
 	public void close() {

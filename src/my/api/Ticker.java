@@ -6,8 +6,17 @@ import java.util.Date;
 public class Ticker {
 	private String symbol;
 	private String timestamp;
+	private Date timestamp_;
 	private boolean blnBid;
 	private double price;
+
+	public Ticker(String symbol, Date timestamp_, boolean blnBid, double price) {
+		super();
+		this.symbol = symbol;
+		this.timestamp_ = timestamp_;
+		this.blnBid = blnBid;
+		this.price = price;
+	}
 
 	public Ticker(String symbol, boolean blnBid, double price) {
 		super();
@@ -23,6 +32,10 @@ public class Ticker {
 
 	public String getTimestamp() {
 		return timestamp;
+	}
+
+	public Date getTimestamp_() {
+		return timestamp_;
 	}
 
 	public boolean isBlnBid() {

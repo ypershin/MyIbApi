@@ -44,7 +44,8 @@ public class Chart {
 			dataset.addSeries(series[i]);
 		}
 
-		chart = ChartFactory.createXYLineChart(new SimpleDateFormat("MMM dd  HH:mm:ss").format(new Date()), "min", "", dataset);
+		chart = ChartFactory.createXYLineChart(new SimpleDateFormat("MMM dd  HH:mm:ss").format(new Date()), "min", "",
+				dataset);
 
 		window.add(new ChartPanel(chart), BorderLayout.CENTER);
 
@@ -68,11 +69,20 @@ public class Chart {
 
 		series[i].add(x, y);
 	}
-	
-	
+
 	public void addDataTick(int i, double y) {
 		double x = (System.nanoTime() - startTime) / 1e9 / 60;
-		series[i].add(x, y);		
+		series[i].add(x, y);
+	}
+
+	public void addDataTickHist(int i, int x, double y) {
+		double ty = Math.floor(y);
+		hlVal[0] = (hlVal[0] == 0) ? ty : Math.min(hlVal[0], ty);
+		ty = Math.ceil(y);
+		hlVal[1] = (hlVal[1] == 0) ? ty : Math.max(hlVal[1], ty);
+
+		chart.getXYPlot().getRangeAxis().setRange(hlVal[0], Math.max(hlVal[0] + 1, hlVal[1]));
+		series[i].add(x, y);
 	}
 
 }
