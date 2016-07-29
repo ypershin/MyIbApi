@@ -33,7 +33,8 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 
 	private final ApiController m_controller = new ApiController(this, this, this);
 
-	private static String[] m_symbol = { "XIV", "VXX" };
+	private static String[] m_symbol = { "VXQ6", "VXU6", "VXV6", "VXX6", "VXZ6", "XIV", "VXX" };
+	// private static String[] m_symbol = { "VXQ6","VXU6"};
 	// private String[] m_symbol = new String[60];
 	private NewContract[] m_contract = null;
 	// private double m_bid, m_ask;
@@ -77,8 +78,14 @@ public class GetTicker extends ConnectionHandlerAdapter implements ILogger, Runn
 			m_contract[i] = new NewContract();
 			// m_contract[i].symbol(m_symbol[i]);
 			m_contract[i].localSymbol(m_symbol[i]);
-			m_contract[i].exchange("SMART");
-			m_contract[i].secType(SecType.STK);
+			if (m_symbol[i].startsWith("VX") && !m_symbol[i].equals("VXX")) {
+				m_contract[i].exchange("CFE");
+				m_contract[i].secType(SecType.FUT);
+
+			} else {
+				m_contract[i].exchange("SMART");
+				m_contract[i].secType(SecType.STK);
+			}
 			m_contract[i].currency("USD");
 			// m_contract[i].currency("CAD");
 

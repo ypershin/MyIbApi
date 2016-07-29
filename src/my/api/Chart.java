@@ -87,7 +87,7 @@ public class Chart {
 		ty = Math.ceil(y);
 		hlVal[1] = (hlVal[1] == 0) ? ty : Math.max(hlVal[1], ty);
 
-		chart.getXYPlot().getRangeAxis().setRange(hlVal[0], Math.max(hlVal[0] + 1, hlVal[1]));
+		chart.getXYPlot().getRangeAxis().setRange(hlVal[0]-1, Math.max(hlVal[0] + 1, hlVal[1]));
 		series[i].add(x, y);
 	}
 

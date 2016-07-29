@@ -31,7 +31,7 @@ public class HistAnalysis implements Runnable {
 		// }
 		// }
 
-		double[][] p = db.getSpread(new String[] { "XIV", "VXX" });
+		double[][] p = db.getSpread(new String[] { "AA", "XRX" });
 
 		for (int i = 0; i < p.length; i++) {
 			if (p[i][0] == 0.0 && i > 0 && p[i - 1][0] > 0)
