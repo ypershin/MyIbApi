@@ -1,8 +1,6 @@
 package my.api;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
 import java.util.Vector;
 
 import com.ib.client.CommissionReport;
@@ -10,7 +8,6 @@ import com.ib.client.Contract;
 import com.ib.client.ContractDetails;
 import com.ib.client.EClientSocket;
 import com.ib.client.EWrapper;
-import com.ib.client.EWrapperMsgGenerator;
 import com.ib.client.Execution;
 import com.ib.client.Order;
 import com.ib.client.OrderState;
@@ -19,9 +16,13 @@ import com.ib.client.UnderComp;
 
 public class GetHistData implements EWrapper {
 
-	private EClientSocket m_client = new EClientSocket(null);
+	private EClientSocket m_client = new EClientSocket(this);
 
 	private String[] m_symbol;
+
+	ArrayList<HistRecord> histRecs = new ArrayList<HistRecord>();
+
+	private DbApi db = new DbApi();
 
 	public static void main(String[] args) {
 		new GetHistData().run();
@@ -35,43 +36,43 @@ public class GetHistData implements EWrapper {
 			// m_client.serverVersion() + " at "
 			// + m_client.TwsConnectionTime());
 
-			m_symbol = new String[] { "XIV" };
+//			m_symbol = new String[] { "XIV", "VXX", "EEM" };
+			m_symbol = new String[] { "FB","AMZN" };
 
 			// System.exit(0);
-		    Vector<TagValue> m_chartOptions = new Vector<TagValue>();
 
-			for (int i = 0; i < m_symbol.length; i++) {
+			int i = -1;
+			while (++i < m_symbol.length) {
+				// System.out.println(i);
 				// System.out.println(m_symbol[i]);
 				Contract contract = new Contract();
 				// m_contract[i].symbol(m_symbol[i]);
 				contract.m_symbol = m_symbol[i];
 				contract.m_secType = "STK";
 				contract.m_exchange = "SMART";
-//				contract.m_primaryExch = "ISLAND";
+				// contract.m_primaryExch = "ISLAND";
 				contract.m_currency = "USD";
 
-				try {
-					m_client.reqHistoricalData(i + 1, contract, "20161202 18:00:00 EST", "1 W", "1 day", "TRADES", 1, 1,
-							m_chartOptions);
-
-				} catch (Exception e) {
-					System.out.println(e);
-				}
+				m_client.reqHistoricalData(i, contract, "20161202 18:00:00", "30 D", "1 min", "TRADES", 1, 1,
+						new Vector<TagValue>());
 
 			}
 
-			@SuppressWarnings("resource")
-			Scanner scanner = new Scanner(System.in);
-			int n = -1;
+			// for (HistRecord r : histRecs) {
+			// System.out.println(r.toString());
+			// }
 
-			while (n != 0) {
-				System.out.print("what request to cancel (0 to exit)? ");
-				n = scanner.nextInt();
-				m_client.cancelHistoricalData(n);
-			}
+			// @SuppressWarnings("resource")
+			// Scanner scanner = new Scanner(System.in);
+			// int n = -1;
+			// while (true) {
+			// System.out.print("what request to cancel (0 to exit)? ");
+			// n = scanner.nextInt();
+			// if (n == 0)
+			// break;
+			// m_client.cancelHistoricalData(n);
+			// }
 
-			m_client.eDisconnect();
-			System.out.println("disconnected");
 		}
 	}
 
@@ -253,9 +254,24 @@ public class GetHistData implements EWrapper {
 			int count, double WAP, boolean hasGaps) {
 		// TODO Auto-generated method stub
 
-		String msg = EWrapperMsgGenerator.historicalData(reqId, date, open, high, low, close, volume, count, WAP,
-				hasGaps);
-		System.out.println(msg);
+		// String msg = EWrapperMsgGenerator.historicalData(reqId, date, open,
+		// high, low, close, volume, count, WAP,
+		// hasGaps);
+		// System.out.println(msg);
+
+		if (date.startsWith("finished")) {
+			m_client.cancelHistoricalData(reqId);
+			db.insertBatchHist(histRecs);
+			histRecs = new ArrayList<HistRecord>();
+
+			if (reqId == m_symbol.length - 1) {
+				m_client.eDisconnect();
+				System.out.println("disconnected");
+			}
+
+		} else {
+			histRecs.add(new HistRecord(m_symbol[reqId], date, open, high, low, close, volume, count, WAP, hasGaps));
+		}
 
 	}
 
