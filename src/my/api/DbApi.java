@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -14,11 +15,12 @@ import java.util.Date;
 public class DbApi {
 
 	private Connection c = null;
-	PreparedStatement ps = null;
+	PreparedStatement ps = null, ps2 = null;
 	Statement stmt = null;
 
 	// private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
 	private static final DateFormat df = new SimpleDateFormat("MM-dd hh:mm:ss.SSS");
+	private static final DateFormat df2 = new SimpleDateFormat("yyyyMMdd  hh:mm:ss");
 
 	// private final int BATCH_SIZE = 40;
 
@@ -43,15 +45,19 @@ public class DbApi {
 			Class.forName("org.postgresql.Driver");
 			c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/equ", "user", "222");
 
-			String sql = "insert into ticks values(?,?::timestamp,?,?::numeric::money,now());";
-			ps = c.prepareStatement(sql);
+			ps = c.prepareStatement("insert into ticks values(?,?::timestamp,?,?::numeric::money,now());");
+
+			// "insert into hist_quotes
+			// values(?,?,?::numeric::money,?::numeric::money,?::numeric::money,?::numeric::money,?,?,?,?,now());"
+
+			ps2 = c.prepareStatement("insert into hist_quotes values(?,?,?,?,?,?,?,?,?,?,now());");
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.err.println(e.getClass().getName() + ": " + e.getMessage());
 			System.exit(0);
 		}
-		System.out.println("Opened database successfully");
+		System.out.println("Connection to postgres opened");
 
 	}
 
@@ -85,7 +91,50 @@ public class DbApi {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
 
+	public void insertBatchHist(ArrayList<HistRecord> histRecs) {
+		try {
+
+			// int cnt = 0;
+			for (HistRecord rec : histRecs) {
+
+				// System.out.println(++cnt + "\t" + ticker.toString());
+
+				ps2.setString(1, rec.getTicker());
+				// String dt = rec.getDate();
+				try {
+					ps2.setTimestamp(2, new java.sql.Timestamp(df2.parse(rec.getDate()).getTime()));
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				ps2.setDouble(3, rec.getOpen());
+				ps2.setDouble(4, rec.getHigh());
+				ps2.setDouble(5, rec.getLow());
+				ps2.setDouble(6, rec.getClose());
+				ps2.setInt(7, rec.getVolume());
+				ps2.setInt(8, rec.getCount());
+				ps2.setDouble(9, rec.getWap());
+				ps2.setBoolean(10, rec.isHasGaps());
+
+				ps2.addBatch();
+
+				// if (++cnt % BATCH_SIZE == 0) {
+				// int[] res = ps.executeBatch();
+				// System.out.println(res[0] + "\t" + res[1]);
+				// }
+			}
+
+			ps2.executeBatch();
+			System.out.println(df.format(new Date()));
+			// ps2.close();
+			// c.commit();
+			// c.close();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public Ticker[] getRecords(String symbol) {
