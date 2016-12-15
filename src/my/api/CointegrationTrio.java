@@ -23,15 +23,15 @@ public class CointegrationTrio extends ConnectionHandlerAdapter implements ILogg
 
 	private final ApiController m_controller = new ApiController(this, this, this);
 
-	private static String[] m_symbol = { "AA", "AAPL", "GSK", "BHI", "CDNS", "CELG" };
+	private static String[] m_symbol = null;
+	private double[] prc = null;
 
-	private static String[][] trio = { { m_symbol[0], m_symbol[1], m_symbol[2] },
-			{ m_symbol[3], m_symbol[4], m_symbol[5] } };
+	private ArrayList<Trio> trios = null;
+	int trioSize = 0;
 
-	private static double[][] weight = { { 1.0, 2.13, -7.723 }, { 1.0, -4.844, 0.746 } };
-	private static double[][] stats = { { -18.95, 0.44 }, { 26.75, 0.20 } };
-	double[] spread = new double[trio.length];
-	int[] pos = new int[trio.length];
+	double[] spread = null;
+	int[] pos = null;
+	private long[] cnt = null;
 
 	// private String[] m_symbol = new String[60];
 	private NewContract[] m_contract = null;
@@ -40,22 +40,24 @@ public class CointegrationTrio extends ConnectionHandlerAdapter implements ILogg
 	private static final DecimalFormat nf = new DecimalFormat("#.00");
 	private DbApi db = new DbApi();
 
-	private final int BATCH_SIZE = 100;
+	// private final int BATCH_SIZE = 100;
 
-	private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
-	private long[] cnt = new long[trio.length];
-
-	private double[] prc = new double[m_symbol.length];
+	// private ArrayList<Ticker> tickerList = new ArrayList<Ticker>();
 
 	// see AccountSummaryTag for tags
-	private static String[] tags = { "NetLiquidation", "AvailableFunds", "MaintMarginReq" };
+	// private static String[] tags = { "NetLiquidation", "AvailableFunds",
+	// "MaintMarginReq" };
 
 	// private static Chart chart = new Chart(tags);
 	// private static Chart chartTick = new Chart(m_symbol);
-	private static Chart[] chartSpread = {
-			new Chart(new String[] { trio[0][0] + " - " + trio[0][1] + " - " + trio[0][2], "avg-sd", "avg", "avg+sd" }),
-			new Chart(
-					new String[] { trio[1][0] + " - " + trio[1][1] + " - " + trio[1][2], "avg-sd", "avg", "avg+sd" }) };
+	private static Chart[] chart = null;
+
+	// {
+	// new Chart(new String[] { trio[0][0] + " - " + trio[0][1] + " - " +
+	// trio[0][2], "avg-sd", "avg", "avg+sd" }),
+	// new Chart(
+	// new String[] { trio[1][0] + " - " + trio[1][1] + " - " + trio[1][2],
+	// "avg-sd", "avg", "avg+sd" }) };
 
 	public static void main(String[] args) {
 
@@ -64,14 +66,41 @@ public class CointegrationTrio extends ConnectionHandlerAdapter implements ILogg
 
 	@Override
 	public void run() {
+
+		trios = Utilities.getTrios("C:/Users/Ypershin/Documents/Trading/co_res3 2016-12-14 bad.csv", 2);
+
 		// chart.activate();
 		// chartTick.activate();
-		chartSpread[0].activate();
-		chartSpread[1].activate();
 
-		// m_symbol =
-		// getSymbols("C:\\Users\\Ypershin\\Documents\\TSX60_components.csv");
+		ArrayList<String> symbols = new ArrayList<String>();
+
+		int j = 0;
+		for (Trio trio : trios) {
+			System.out.println(trio.toString());
+
+			boolean[] blnAdd = { true, true, true };
+
+			// check if symbols in the array already
+			for (String symbol : symbols) {
+				for (int n = 0; n < 3; n++) {
+					if (symbol.equals(trio.getSymbol()[n]))
+						blnAdd[n] = false;
+				}
+			}
+
+			// add missing symbols to array
+			for (int n = 0; n < 3; n++)
+				if (blnAdd[n])
+					symbols.add(trio.getSymbol()[n]);
+
+			trio.activateChart();
+		}
+
+		m_symbol = new String[symbols.size()];
+		symbols.toArray(m_symbol);
+
 		m_contract = new NewContract[m_symbol.length];
+		prc = new double[m_symbol.length];
 
 		// System.exit(0);
 
@@ -85,7 +114,7 @@ public class CointegrationTrio extends ConnectionHandlerAdapter implements ILogg
 			m_contract[i].currency("USD");
 			// m_contract[i].currency("CAD");
 		}
-		m_controller.connect("127.0.0.1", 7496, 0);
+		// m_controller.connect("127.0.0.1", 7496, 0);
 	}
 
 	@Override
@@ -105,8 +134,78 @@ public class CointegrationTrio extends ConnectionHandlerAdapter implements ILogg
 	public void disconnected() {
 		System.out.println("************ FINALLY *****************");
 		m_controller.disconnect();
-		db.insertBatch(tickerList);
+		// db.insertBatch(tickerList);
 		db.close();
+
+	}
+
+	private void getMarketData(NewContract contract) {
+
+		System.out.println(contract.localSymbol());
+
+		m_controller.reqTopMktData(contract, "", false, new ITopMktDataHandler() {
+
+			@Override
+			public void tickPrice(NewTickType tickType, double price, int canAutoExecute) {
+
+				if (price != 0.0) {
+					// System.out.println(contract.localSymbol() + "\t" +
+					// df.format(new Date())
+					// + (tickType == NewTickType.BID ? "\t\t" : "\t\t\t") +
+					// nf.format(price));
+
+					// tickerList.add(new Ticker(contract.localSymbol(),
+					// tickType == NewTickType.BID, price));
+
+					for (Trio trio : trios) {
+						for (int n = 0; n < 3; n++) {
+							if (contract.localSymbol().equals(trio.getSymbol()[n]))
+								prc[n] = price;
+						}
+
+//						if (++trio.cnt > 50) {
+							if (trio.prc[0] != 0 && trio.prc[1] != 0 && trio.prc[2] != 0) {
+
+								trio.calcSpread();
+								trio.addTickToChart();
+
+							}
+//						}
+
+					}
+
+					// if (++cnt % BATCH_SIZE == 0) {
+					// db.insertBatch(tickerList);
+					// tickerList = new ArrayList<Ticker>();
+					// }
+
+				}
+
+				// checkPrices(this);
+			}
+
+			@Override
+			public void tickSize(NewTickType tickType, int size) {
+				// print("tickSize\t" + size);
+			}
+
+			@Override
+			public void tickString(NewTickType tickType, String value) {
+				// print(symbol + "\ttickString\t" + value);
+			}
+
+			@Override
+			public void tickSnapshotEnd() {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void marketDataType(MktDataType marketDataType) {
+				// TODO Auto-generated method stub
+
+			}
+		});
 
 	}
 
@@ -149,95 +248,6 @@ public class CointegrationTrio extends ConnectionHandlerAdapter implements ILogg
 				// Thread.sleep(1000);
 				// } catch (InterruptedException e) {
 				// }
-
-			}
-		});
-
-	}
-
-	private void getMarketData(NewContract contract) {
-
-		System.out.println(contract.localSymbol());
-		int ml = m_symbol.length;
-
-		m_controller.reqTopMktData(contract, "", false, new ITopMktDataHandler() {
-
-			@Override
-			public void tickPrice(NewTickType tickType, double price, int canAutoExecute) {
-
-				if (price != 0.0) {
-					// System.out.println(contract.localSymbol() + "\t" +
-					// df.format(new Date())
-					// + (tickType == NewTickType.BID ? "\t\t" : "\t\t\t") +
-					// nf.format(price));
-
-					tickerList.add(new Ticker(contract.localSymbol(), tickType == NewTickType.BID, price));
-
-					for (int j = 0; j < ml; j++) {
-						if (contract.localSymbol().equals(m_symbol[j])) {
-							// chartTick.addDataTick(j, price);
-							if (j < prc.length)
-								prc[j] = price;
-							break;
-						}
-					}
-
-					for (int j = 0; j < trio.length; j++) {
-						if (++cnt[j] > 50) {
-							if (prc[0 + 3 * j] != 0 && prc[1 + 3 * j] != 0 && prc[2 + 3 * j] != 0) {
-								spread[j] = prc[0 + 3 * j] + weight[j][1] * prc[1 + 3 * j]
-										+ weight[j][2] * prc[2 + 3 * j];
-
-								chartSpread[j].addDataTick(0, spread[j]);
-								chartSpread[j].addDataTick(1, stats[j][0] - stats[j][1]);
-								chartSpread[j].addDataTick(2, stats[j][0]);
-								chartSpread[j].addDataTick(3, stats[j][0] + stats[j][1]);
-
-								if (pos[j] == 0 && (spread[j] < stats[j][0] - stats[j][1]
-										|| spread[j] > stats[j][0] + stats[j][1])) {
-									pos[j]++;
-									// System.out.println(String.format("%1$.2f\t%2$.2f\t%3$.2f\t%4$.2f",
-									// prc[0 + 3 * j],
-									// prc[1 + 3 * j], prc[2 + 3 * j],
-									// spread[j]));
-									System.out.println(String.format("%1$s-%2$s-%3$s\t%4$.2f\t%5$.2f\t%6$.2f\t%7$.2f",
-											trio[j][0], trio[j][1], trio[j][2], prc[0 + 3 * j], prc[1 + 3 * j],
-											prc[2 + 3 * j], spread[j]));
-								}
-							}
-						}
-
-					}
-
-					// if (++cnt % BATCH_SIZE == 0) {
-					// db.insertBatch(tickerList);
-					// tickerList = new ArrayList<Ticker>();
-					// }
-
-				}
-
-				// checkPrices(this);
-			}
-
-			@Override
-			public void tickSize(NewTickType tickType, int size) {
-				// print("tickSize\t" + size);
-			}
-
-			@Override
-			public void tickString(NewTickType tickType, String value) {
-				// print(symbol + "\ttickString\t" + value);
-			}
-
-			@Override
-			public void tickSnapshotEnd() {
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void marketDataType(MktDataType marketDataType) {
-				// TODO Auto-generated method stub
 
 			}
 		});
