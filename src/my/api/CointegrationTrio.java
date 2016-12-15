@@ -160,7 +160,7 @@ public class CointegrationTrio extends ConnectionHandlerAdapter implements ILogg
 					for (Trio trio : trios) {
 						for (int n = 0; n < 3; n++) {
 							if (contract.localSymbol().equals(trio.getSymbol()[n]))
-								prc[n] = price;
+								trio.prc[n] = price;
 						}
 
 //						if (++trio.cnt > 50) {
